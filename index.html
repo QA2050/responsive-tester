@@ -14,7 +14,7 @@
     .device-label { font-size: 14px; margin: 5px 0; }
     .iframe-container { position: relative; overflow: hidden; }
     iframe { border: 1px solid #ccc; }
-    .toggle-btn { margin-top: 5px; padding: 5px 10px; cursor: pointer; }
+    .toggle-btn, .open-btn { margin-top: 5px; padding: 5px 10px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -37,13 +37,11 @@
     const loadBtn = document.getElementById("load-btn");
     const devicesContainer = document.getElementById("devices");
 
-    // Load URL into iframes
     function loadDevices(url) {
-      devicesContainer.innerHTML = ""; // Clear previous
+      devicesContainer.innerHTML = ""; // Clear previous results
       devices.forEach(device => createDevice(device, url));
     }
 
-    // Create device mockup with iframe and toggle
     function createDevice(device, url) {
       const div = document.createElement("div");
       div.className = "device";
@@ -58,7 +56,17 @@
       const iframe = document.createElement("iframe");
       iframe.width = device.width;
       iframe.height = device.height;
-      iframe.src = url.startsWith("http") ? url : "https://" + url;
+      iframe.src = `/proxy?url=${encodeURIComponent(url)}`; // Use proxy
+
+      // Handle errors when iframe refuses to load
+      iframe.onerror = () => {
+        iframeContainer.innerHTML = `<p style="color: red;">Cannot load in iframe.</p>`;
+        const openBtn = document.createElement("button");
+        openBtn.className = "open-btn";
+        openBtn.textContent = "Open in New Tab";
+        openBtn.onclick = () => window.open(url, "_blank");
+        div.appendChild(openBtn);
+      };
 
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "toggle-btn";
@@ -77,13 +85,11 @@
       devicesContainer.appendChild(div);
     }
 
-    // Event listener for button click
     loadBtn.onclick = () => {
       const url = urlInput.value.trim();
       if (url) loadDevices(url);
     };
 
-    // Enter key support
     urlInput.onkeypress = (e) => {
       if (e.key === "Enter") loadBtn.click();
     };
