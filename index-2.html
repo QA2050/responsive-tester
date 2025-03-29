@@ -131,7 +131,11 @@
         }
       };
       iframe.onerror = () => {
-        iframeContainer.innerHTML = `<p>Site blocked embedding. <a href="${iframe.src}" target="_blank">Open in new tab</a></p>`;
+        iframeContainer.innerHTML = `
+          <p>Embedding blocked by ${url}. This site’s security settings (e.g., X-Frame-Options or CSP) prevent it from loading here.</p>
+          <p><a href="${iframe.src}" target="_blank">Open in new tab</a> | 
+          <a href="#" onclick="location.reload()">Retry</a></p>
+        `;
       };
 
       const toggleBtn = document.createElement("button");
@@ -141,7 +145,7 @@
         const temp = iframe.width;
         iframe.width = iframe.height;
         iframe.height = temp;
-        label.textContent = `${device.name} (${iframe.width}x${iframe.height}, ${device.ios}) - ${browser}`;
+        label.textContent = `${device.name} (${iframe.width}x${device.height}, ${device.ios}) - ${browser}`;
       };
 
       const devBtn = document.createElement("button");
