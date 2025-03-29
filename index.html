@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Responsive Tester</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+    #input-container { text-align: center; margin-bottom: 20px; }
+    #url-input { padding: 8px; width: 300px; }
+    #load-btn { padding: 8px 16px; cursor: pointer; }
+    #devices { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+    .device { background: #fff; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.2); text-align: center; }
+    .device-label { font-size: 14px; margin: 5px 0; }
+    .iframe-container { position: relative; overflow: hidden; }
+    iframe { border: 1px solid #ccc; }
+    .toggle-btn { margin-top: 5px; padding: 5px 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="input-container">
+    <input type="text" id="url-input" placeholder="Enter website URL (e.g., https://example.com)">
+    <button id="load-btn">Load</button>
+  </div>
+  <div id="devices"></div>
+
+  <script>
+    const devices = [
+      { name: "iPhone 5/SE", width: 320, height: 568 },
+      { name: "iPhone 6/7/8", width: 375, height: 667 },
+      { name: "iPhone X", width: 375, height: 812 },
+      { name: "iPad", width: 768, height: 1024 },
+      { name: "iPad Pro", width: 1024, height: 1366 }
+    ];
+
+    const urlInput = document.getElementById("url-input");
+    const loadBtn = document.getElementById("load-btn");
+    const devicesContainer = document.getElementById("devices");
+
+    // Load URL into iframes
+    function loadDevices(url) {
+      devicesContainer.innerHTML = ""; // Clear previous
+      devices.forEach(device => createDevice(device, url));
+    }
+
+    // Create device mockup with iframe and toggle
+    function createDevice(device, url) {
+      const div = document.createElement("div");
+      div.className = "device";
+
+      const label = document.createElement("div");
+      label.className = "device-label";
+      label.textContent = `${device.name} (${device.width}x${device.height})`;
+
+      const iframeContainer = document.createElement("div");
+      iframeContainer.className = "iframe-container";
+
+      const iframe = document.createElement("iframe");
+      iframe.width = device.width;
+      iframe.height = device.height;
+      iframe.src = url.startsWith("http") ? url : "https://" + url;
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "toggle-btn";
+      toggleBtn.textContent = "Rotate";
+      toggleBtn.onclick = () => {
+        const temp = iframe.width;
+        iframe.width = iframe.height;
+        iframe.height = temp;
+        label.textContent = `${device.name} (${iframe.width}x${iframe.height})`;
+      };
+
+      iframeContainer.appendChild(iframe);
+      div.appendChild(label);
+      div.appendChild(iframeContainer);
+      div.appendChild(toggleBtn);
+      devicesContainer.appendChild(div);
+    }
+
+    // Event listener for button click
+    loadBtn.onclick = () => {
+      const url = urlInput.value.trim();
+      if (url) loadDevices(url);
+    };
+
+    // Enter key support
+    urlInput.onkeypress = (e) => {
+      if (e.key === "Enter") loadBtn.click();
+    };
+  </script>
+</body>
+</html>
