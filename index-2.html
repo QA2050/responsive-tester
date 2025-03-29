@@ -7,9 +7,9 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f9; color: #333; }
     #input-container { text-align: center; margin-bottom: 20px; }
-    #url-input { padding: 10px; width: 350px; border: 1px solid #ccc; border-radius: 4px; }
-    #browser-select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-    #load-btn { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    #url-input { padding: 10px; width: 250px; border: 1px solid #ccc; border-radius: 4px; }
+    #site-select, #browser-select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-left: 10px; }
+    #load-btn { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; }
     #load-btn:hover { background: #0056b3; }
     #tabs { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
     .tab { padding: 10px 20px; background: #ddd; cursor: pointer; border-radius: 4px 4px 0 0; }
@@ -33,7 +33,14 @@
 </head>
 <body>
   <div id="input-container">
-    <input type="text" id="url-input" placeholder="Enter website URL (e.g., https://html5test.com)">
+    <input type="text" id="url-input" placeholder="Enter custom URL">
+    <select id="site-select">
+      <option value="">Select a test site</option>
+      <option value="https://html5test.com">HTML5Test</option>
+      <option value="https://example.com">Example.com</option>
+      <option value="https://www.wikipedia.org">Wikipedia</option>
+      <option value="https://k12.ceia-usa.com">K12 CEIA USA (Blocked)</option>
+    </select>
     <select id="browser-select">
       <option value="Safari">Safari</option>
       <option value="Chrome">Chrome</option>
@@ -80,6 +87,7 @@
     };
 
     const urlInput = document.getElementById("url-input");
+    const siteSelect = document.getElementById("site-select");
     const browserSelect = document.getElementById("browser-select");
     const loadBtn = document.getElementById("load-btn");
     const tabs = document.querySelectorAll(".tab");
@@ -93,7 +101,7 @@
         const item = document.createElement("div");
         item.className = "device-item";
         item.textContent = `${device.name} (${device.width}x${device.height}, ${device.ios})`;
-        item.onclick = () => loadDevice(device, urlInput.value.trim(), browserSelect.value);
+        item.onclick = () => loadDevice(device, urlInput.value.trim() || siteSelect.value, browserSelect.value);
         deviceList.appendChild(item);
       });
     }
@@ -191,13 +199,17 @@
     });
 
     loadBtn.onclick = () => {
-      const url = urlInput.value.trim();
+      const url = urlInput.value.trim() || siteSelect.value;
       const browser = browserSelect.value;
       if (url) loadDevice(appleDevices.iphone[0], url, browser); // Default to first iPhone
     };
 
     urlInput.onkeypress = (e) => {
       if (e.key === "Enter") loadBtn.click();
+    };
+
+    siteSelect.onchange = () => {
+      if (siteSelect.value) urlInput.value = siteSelect.value;
     };
 
     // Initial load
