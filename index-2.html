@@ -1,99 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Responsive Tester</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
-    #input-container { text-align: center; margin-bottom: 20px; }
-    #url-input { padding: 8px; width: 300px; }
-    #load-btn { padding: 8px 16px; cursor: pointer; }
-    #devices { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-    .device { background: #fff; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.2); text-align: center; }
-    .device-label { font-size: 14px; margin: 5px 0; }
-    .iframe-container { position: relative; overflow: hidden; }
-    iframe { border: 1px solid #ccc; }
-    .toggle-btn { margin-top: 5px; padding: 5px 10px; cursor: pointer; }
-    .proxy-warning { color: red; font-weight: bold; margin-top: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradient Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.css">
 </head>
 <body>
-  <div id="input-container">
-    <input type="text" id="url-input" placeholder="Enter website URL (e.g., https://example.com)">
-    <button id="load-btn">Load</button>
-  </div>
-  <div id="devices"></div>
-  <p class="proxy-warning">
-    <strong>Warning:</strong> This tool uses a client-side proxy which may not bypass all security restrictions.  Many websites will still refuse to load in the iframe due to security headers. Use with caution and be aware of potential CORS issues. Consider running a *server-side* proxy for a more robust solution.
-  </p>
+    <div class="container">
+        <h1>Gradient Generator</h1>
 
-  <script>
-    const devices = [
-      { name: "iPhone 5/SE", width: 320, height: 568 },
-      { name: "iPhone 6/7/8", width: 375, height: 667 },
-      { name: "iPhone X", width: 375, height: 812 },
-      { name: "iPad", width: 768, height: 1024 },
-      { name: "iPad Pro", width: 1024, height: 1366 }
-    ];
+        <div id="color-inputs">
+            <label for="num-colors">Number of Colors:</label>
+            <select id="num-colors">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+            </select>
 
-    const urlInput = document.getElementById("url-input");
-    const loadBtn = document.getElementById("load-btn");
-    const devicesContainer = document.getElementById("devices");
+            <div id="color-picker-container">
+                <!-- Color pickers will be dynamically added here -->
+            </div>
+        </div>
 
-    // Load URL into iframes
-    function loadDevices(url) {
-      devicesContainer.innerHTML = ""; // Clear previous
-      devices.forEach(device => createDevice(device, url));
-    }
+        <div id="gradient-options">
+            <label for="gradient-type">Type:</label>
+            <select id="gradient-type">
+                <option value="linear">Linear</option>
+                <option value="radial">Radial</option>
+            </select>
 
-    // Create device mockup with iframe and toggle
-    function createDevice(device, url) {
-      const div = document.createElement("div");
-      div.className = "device";
+            <div id="linear-options" style="display: block;">
+                <label for="linear-angle">Angle (deg):</label>
+                <input type="number" id="linear-angle" value="45">
+            </div>
 
-      const label = document.createElement("div");
-      label.className = "device-label";
-      label.textContent = `${device.name} (${device.width}x${device.height})`;
+            <div id="radial-options" style="display: none;">
+                <label for="radial-shape">Shape:</label>
+                <select id="radial-shape">
+                    <option value="circle">Circle</option>
+                    <option value="ellipse">Ellipse</option>
+                </select>
+                <label for="radial-position">Position:</label>
+                <input type="text" id="radial-position" value="center">  <!-- Example: center, top left, 20% 30% -->
+            </div>
+        </div>
 
-      const iframeContainer = document.createElement("div");
-      iframeContainer.className = "iframe-container";
+        <div id="gradient-preview">
+            </div>
 
-      const iframe = document.createElement("iframe");
-      iframe.width = device.width;
-      iframe.height = device.height;
+        <div id="code-output">
+            <textarea id="css-code" readonly></textarea>
+            <button id="copy-button">Copy CSS</button>
+        </div>
 
-      //  Attempt to bypass CORS using a public CORS proxy (VERY limited, not reliable)
-      const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;  //Replace with own proxy service
-      iframe.src = url.startsWith("http") ? proxyUrl : `https://cors-anywhere.herokuapp.com/https://${url}`;
+    </div>
 
-      const toggleBtn = document.createElement("button");
-      toggleBtn.className = "toggle-btn";
-      toggleBtn.textContent = "Rotate";
-      toggleBtn.onclick = () => {
-        const temp = iframe.width;
-        iframe.width = iframe.height;
-        iframe.height = temp;
-        label.textContent = `${device.name} (${iframe.width}x${iframe.height})`;
-      };
-
-      iframeContainer.appendChild(iframe);
-      div.appendChild(label);
-      div.appendChild(iframeContainer);
-      div.appendChild(toggleBtn);
-      devicesContainer.appendChild(div);
-    }
-
-    // Event listener for button click
-    loadBtn.onclick = () => {
-      const url = urlInput.value.trim();
-      if (url) loadDevices(url);
-    };
-
-    // Enter key support
-    urlInput.onkeypress = (e) => {
-      if (e.key === "Enter") loadBtn.click();
-    };
-  </script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
