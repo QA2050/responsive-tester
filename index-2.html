@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apple Device Emulator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f9; color: #333; }
+    #input-container { text-align: center; margin-bottom: 20px; }
+    #url-input { padding: 10px; width: 350px; border: 1px solid #ccc; border-radius: 4px; }
+    #browser-select { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    #load-btn { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    #load-btn:hover { background: #0056b3; }
+    #tabs { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+    .tab { padding: 10px 20px; background: #ddd; cursor: pointer; border-radius: 4px 4px 0 0; }
+    .tab.active { background: #007bff; color: white; }
+    #device-list { max-height: 200px; overflow-y: auto; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; }
+    .device-item { padding: 8px; cursor: pointer; }
+    .device-item:hover { background: #f0f0f0; }
+    #devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; padding: 20px; }
+    .device { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+    .device-label { font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+    .iframe-container { position: relative; overflow: hidden; background: #eee; }
+    iframe { border: 1px solid #ddd; transition: all 0.3s; }
+    .controls { margin-top: 10px; display: flex; gap: 10px; justify-content: center; }
+    .toggle-btn, .dev-btn { padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .toggle-btn:hover { background: #218838; }
+    .dev-btn { background: #6c757d; }
+    .dev-btn:hover { background: #5a6268; }
+    .debug-panel { display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border: 1px solid #ddd; font-size: 12px; text-align: left; }
+    #loading { display: none; text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div id="input-container">
+    <input type="text" id="url-input" placeholder="Enter website URL (e.g., https://html5test.com)">
+    <select id="browser-select">
+      <option value="Safari">Safari</option>
+      <option value="Chrome">Chrome</option>
+      <option value="Firefox">Firefox</option>
+      <option value="Edge">Edge</option>
+    </select>
+    <button id="load-btn">Load</button>
+  </div>
+  <div id="tabs">
+    <div class="tab active" data-tab="iphone">iPhones</div>
+    <div class="tab" data-tab="ipad">iPads</div>
+  </div>
+  <div id="device-list"></div>
+  <div id="loading">Loading...</div>
+  <div id="devices"></div>
+
+  <script>
+    const appleDevices = {
+      iphone: [
+        { name: "iPhone SE (1st Gen)", width: 320, height: 568, ios: "iOS 15" },
+        { name: "iPhone 6/6s", width: 375, height: 667, ios: "iOS 15" },
+        { name: "iPhone 8", width: 375, height: 667, ios: "iOS 16" },
+        { name: "iPhone X", width: 375, height: 812, ios: "iOS 16" },
+        { name: "iPhone 11", width: 414, height: 896, ios: "iOS 17" },
+        { name: "iPhone 12", width: 390, height: 844, ios: "iOS 17" },
+        { name: "iPhone 13", width: 390, height: 844, ios: "iOS 18" },
+        { name: "iPhone 14", width: 390, height: 844, ios: "iOS 18" },
+        { name: "iPhone 14 Pro", width: 393, height: 852, ios: "iOS 18" }
+      ],
+      ipad: [
+        { name: "iPad Mini (6th Gen)", width: 744, height: 1133, ios: "iPadOS 18" },
+        { name: "iPad (9th Gen)", width: 810, height: 1080, ios: "iPadOS 17" },
+        { name: "iPad Air (5th Gen)", width: 820, height: 1180, ios: "iPadOS 18" },
+        { name: "iPad Pro 11-inch", width: 834, height: 1194, ios: "iPadOS 18" },
+        { name: "iPad Pro 12.9-inch", width: 1024, height: 1366, ios: "iPadOS 18" }
+      ]
+    };
+
+    const browserAgents = {
+      Safari: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+      Chrome: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Mobile Safari/537.36",
+      Firefox: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/130.0 Mobile/15E148 Safari/605.1.15",
+      Edge: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/537.36 (KHTML, like Gecko) Version/18.0 EdgiOS/117.0 Mobile Safari/537.36"
+    };
+
+    const urlInput = document.getElementById("url-input");
+    const browserSelect = document.getElementById("browser-select");
+    const loadBtn = document.getElementById("load-btn");
+    const tabs = document.querySelectorAll(".tab");
+    const deviceList = document.getElementById("device-list");
+    const devicesContainer = document.getElementById("devices");
+    const loading = document.getElementById("loading");
+
+    function populateDeviceList(tab) {
+      deviceList.innerHTML = "";
+      appleDevices[tab].forEach(device => {
+        const item = document.createElement("div");
+        item.className = "device-item";
+        item.textContent = `${device.name} (${device.width}x${device.height}, ${device.ios})`;
+        item.onclick = () => loadDevice(device, urlInput.value.trim(), browserSelect.value);
+        deviceList.appendChild(item);
+      });
+    }
+
+    function loadDevice(device, url, browser) {
+      loading.style.display = "block";
+      devicesContainer.innerHTML = "";
+      setTimeout(() => { // Simulate AJAX delay
+        createDevice(device, url || "https://html5test.com", browser);
+        loading.style.display = "none";
+      }, 500);
+    }
+
+    function createDevice(device, url, browser) {
+      const div = document.createElement("div");
+      div.className = "device";
+
+      const label = document.createElement("div");
+      label.className = "device-label";
+      label.textContent = `${device.name} (${device.width}x${device.height}, ${device.ios}) - ${browser}`;
+
+      const iframeContainer = document.createElement("div");
+      iframeContainer.className = "iframe-container";
+
+      const iframe = document.createElement("iframe");
+      iframe.width = device.width;
+      iframe.height = device.height;
+      iframe.src = url.startsWith("http") ? url : "https://" + url;
+      iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow.navigator.userAgent = browserAgents[browser];
+        } catch (e) {
+          console.log("User-agent spoofing limited in this context.");
+        }
+      };
+      iframe.onerror = () => {
+        iframeContainer.innerHTML = `<p>Site blocked embedding. <a href="${iframe.src}" target="_blank">Open in new tab</a></p>`;
+      };
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "toggle-btn";
+      toggleBtn.textContent = "Rotate";
+      toggleBtn.onclick = () => {
+        const temp = iframe.width;
+        iframe.width = iframe.height;
+        iframe.height = temp;
+        label.textContent = `${device.name} (${iframe.width}x${iframe.height}, ${device.ios}) - ${browser}`;
+      };
+
+      const devBtn = document.createElement("button");
+      devBtn.className = "dev-btn";
+      devBtn.textContent = "DevTools";
+      devBtn.onclick = () => {
+        const panel = div.querySelector(".debug-panel") || createDebugPanel(iframe, device.ios);
+        panel.style.display = panel.style.display === "block" ? "none" : "block";
+      };
+
+      const controls = document.createElement("div");
+      controls.className = "controls";
+      controls.appendChild(toggleBtn);
+      controls.appendChild(devBtn);
+
+      iframeContainer.appendChild(iframe);
+      div.appendChild(label);
+      div.appendChild(iframeContainer);
+      div.appendChild(controls);
+      devicesContainer.appendChild(div);
+    }
+
+    function createDebugPanel(iframe, ios) {
+      const panel = document.createElement("div");
+      panel.className = "debug-panel";
+      panel.innerHTML = `
+        <p><strong>URL:</strong> ${iframe.src}</p>
+        <p><strong>Viewport:</strong> ${iframe.width}x${iframe.height}</p>
+        <p><strong>OS:</strong> ${ios}</p>
+        <p><strong>User-Agent:</strong> ${navigator.userAgent}</p>
+        <p>Use browser DevTools for full inspection.</p>
+      `;
+      iframe.parentElement.parentElement.appendChild(panel);
+      return panel;
+    }
+
+    tabs.forEach(tab => {
+      tab.onclick = () => {
+        tabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        populateDeviceList(tab.dataset.tab);
+      };
+    });
+
+    loadBtn.onclick = () => {
+      const url = urlInput.value.trim();
+      const browser = browserSelect.value;
+      if (url) loadDevice(appleDevices.iphone[0], url, browser); // Default to first iPhone
+    };
+
+    urlInput.onkeypress = (e) => {
+      if (e.key === "Enter") loadBtn.click();
+    };
+
+    // Initial load
+    populateDeviceList("iphone");
+  </script>
+</body>
+</html>
