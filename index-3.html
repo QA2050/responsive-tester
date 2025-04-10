@@ -1,43 +1,126 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Link Checker</title>
+    <title>Dead Link Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+    </style>
 </head>
 <body>
     <h1>Dead Link Checker</h1>
-    <input type="text" id="url" placeholder="Enter URL" />
+    <input type="text" id="url" placeholder="Enter URL (e.g., https://example.com)" style="width: 300px" />
     <button onclick="checkLinks()">Check Links</button>
 
     <h2>Results</h2>
-    <table id="results"></table>
+    <table id="results">
+        <thead>
+            <tr>
+                <th>Link</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
     <script>
         async function checkLinks() {
-            const url = document.getElementById('url').value;
-            const resultsTable = document.getElementById('results');
-            resultsTable.innerHTML = '';
+            const url = document.getElementById('url').value.trim();
+            const resultsTable = document.getElementById('results').getElementsByTagName('tbody')[0];
+            resultsTable.innerHTML = ''; // Clear previous results
+
+            // Validate URL format
+            const urlPattern = /^https?:\/\/.+/;
+            if (!url) {
+                alert('Please enter a URL.');
+                return;
+            }
+            if (!urlPattern.test(url)) {
+                alert('Please enter a valid URL starting with http:// or https://');
+                return;
+            }
 
             try {
-                const response = await fetch(url);
+                // Set up fetch with a timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-second timeout
+
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 const text = await response.text();
 
+                // Parse the page content
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(text, 'text/html');
                 const links = doc.querySelectorAll('a[href]');
 
+                // Loop through all links and check their status
                 for (let link of links) {
                     const href = link.getAttribute('href');
+
+                    // Skip invalid or non-HTTP links (e.g., mailto:, javascript:)
+                    if (!href || href.startsWith('mailto:') || href.startsWith('javascript:')) {
+                        continue;
+                    }
+
+                    // Handle relative URLs
+                    let fullUrl;
                     try {
-                        const res = await fetch(href, { method: 'HEAD' });
-                        const status = res.ok ? '200 OK' : '404 Not Found';
-                        resultsTable.innerHTML += `<tr><td><a href="${href}" target="_blank">${href}</a></td><td>${status}</td></tr>`;
+                        fullUrl = href.startsWith('http') ? href : new URL(href, url).href;
+                    } catch (e) {
+                        resultsTable.innerHTML += `<tr><td><a href="${href}" target="_blank">${href}</a></td><td>Invalid URL</td></tr>`;
+                        continue;
+                    }
+
+                    try {
+                        const linkController = new AbortController();
+                        const linkTimeoutId = setTimeout(() => linkController.abort(), 5000); // 5-second timeout for each link
+                        const linkResponse = await fetch(fullUrl, { method: 'HEAD', signal: linkController.signal });
+                        clearTimeout(linkTimeoutId);
+
+                        // Handle status and redirects
+                        let status = linkResponse.ok ? '200 OK' : `${linkResponse.status} ${linkResponse.statusText}`;
+                        if (linkResponse.redirected) {
+                            status += ` (Redirected to ${linkResponse.url})`;
+                        }
+                        resultsTable.innerHTML += `<tr><td><a href="${fullUrl}" target="_blank">${fullUrl}</a></td><td>${status}</td></tr>`;
                     } catch (error) {
-                        resultsTable.innerHTML += `<tr><td><a href="${href}" target="_blank">${href}</a></td><td>Timeout/Error</td></tr>`;
+                        let errorMessage = 'Timeout/Error';
+                        if (error.name === 'AbortError') {
+                            errorMessage = 'Request Timed Out';
+                        } else if (error.message.includes('NetworkError')) {
+                            errorMessage = 'Network Error';
+                        }
+                        resultsTable.innerHTML += `<tr><td><a href="${fullUrl}" target="_blank">${fullUrl}</a></td><td>${errorMessage}</td></tr>`;
                     }
                 }
             } catch (error) {
-                alert('Error fetching the page.');
+                let errorMessage = 'Error fetching the page.';
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Error: Request timed out after 5 seconds.';
+                } else if (error.message.includes('NetworkError')) {
+                    errorMessage = 'Error: Network issue. Please check your connection.';
+                } else {
+                    errorMessage = 'Error fetching the page. This might be due to CORS restrictions or an invalid URL.';
+                }
+                alert(errorMessage);
             }
         }
     </script>
